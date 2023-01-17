@@ -26,9 +26,7 @@ public class LaunchOptions implements Serializable {
     private Integer metaspace;
     private Integer width;
     private Integer height;
-    private boolean fullscreen;
     private String serverIp;
-    private boolean noGeneratedJVMArgs;
     private ProcessPriority processPriority = ProcessPriority.NORMAL;
     private FCLConfig.Renderer renderer;
 
@@ -128,24 +126,10 @@ public class LaunchOptions implements Serializable {
     }
 
     /**
-     * Is inital game window fullscreen.
-     */
-    public boolean isFullscreen() {
-        return fullscreen;
-    }
-
-    /**
      * The server ip that will connect to when enter game main menu.
      */
     public String getServerIp() {
         return serverIp;
-    }
-
-    /**
-     * Prevent game launcher from generating default JVM arguments like max memory.
-     */
-    public boolean isNoGeneratedJVMArgs() {
-        return noGeneratedJVMArgs;
     }
 
     /**
@@ -263,24 +247,10 @@ public class LaunchOptions implements Serializable {
         }
 
         /**
-         * Is inital game window fullscreen.
-         */
-        public boolean isFullscreen() {
-            return options.fullscreen;
-        }
-
-        /**
          * The server ip that will connect to when enter game main menu.
          */
         public String getServerIp() {
             return options.serverIp;
-        }
-
-        /**
-         * Prevent game launcher from generating default JVM arguments like max memory.
-         */
-        public boolean isNoGeneratedJVMArgs() {
-            return options.noGeneratedJVMArgs;
         }
 
         /**
@@ -365,18 +335,8 @@ public class LaunchOptions implements Serializable {
             return this;
         }
 
-        public Builder setFullscreen(boolean fullscreen) {
-            options.fullscreen = fullscreen;
-            return this;
-        }
-
         public Builder setServerIp(String serverIp) {
             options.serverIp = serverIp;
-            return this;
-        }
-
-        public Builder setNoGeneratedJVMArgs(boolean noGeneratedJVMArgs) {
-            options.noGeneratedJVMArgs = noGeneratedJVMArgs;
             return this;
         }
 

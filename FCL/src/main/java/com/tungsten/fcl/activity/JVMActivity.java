@@ -1,24 +1,19 @@
 package com.tungsten.fcl.activity;
 
-import android.content.res.Configuration;
 import android.graphics.SurfaceTexture;
 import android.os.Bundle;
-import android.util.Log;
+import android.view.KeyEvent;
 import android.view.Surface;
 import android.view.TextureView;
-import android.view.View;
-import android.widget.EditText;
-import android.widget.ImageView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.tungsten.fcl.R;
-import com.tungsten.fcl.control.Controller;
-import com.tungsten.fcl.control.ControllerType;
-import com.tungsten.fcl.control.GameController;
-import com.tungsten.fcl.control.JavaGuiController;
-import com.tungsten.fcl.onlytest.MioMouseKeyboard;
+import com.tungsten.fcl.control.MenuCallback;
+import com.tungsten.fcl.control.MenuType;
+import com.tungsten.fcl.control.GameMenu;
+import com.tungsten.fcl.control.JavaGuiMenu;
 import com.tungsten.fclauncher.bridge.FCLBridge;
 import com.tungsten.fclcore.util.Logging;
 import com.tungsten.fcllibrary.component.FCLActivity;
@@ -29,18 +24,13 @@ public class JVMActivity extends FCLActivity implements TextureView.SurfaceTextu
 
     private TextureView textureView;
 
-    private Controller controller;
-    private static ControllerType controllerType;
+    private MenuCallback menuCallback;
+    private static MenuType menuType;
     private static FCLBridge fclBridge;
 
-    //only for test version
-    public MioMouseKeyboard mioMouseKeyboard;
-    public ImageView mouse;
-    private EditText input;
-
-    public static void setFClBridge(FCLBridge fclBridge, ControllerType controllerType) {
+    public static void setFClBridge(FCLBridge fclBridge, MenuType menuType) {
         JVMActivity.fclBridge = fclBridge;
-        JVMActivity.controllerType = controllerType;
+        JVMActivity.menuType = menuType;
     }
 
     @Override
@@ -48,31 +38,27 @@ public class JVMActivity extends FCLActivity implements TextureView.SurfaceTextu
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_jvm);
 
-        if (controllerType == null || fclBridge == null) {
+        if (menuType == null || fclBridge == null) {
             Logging.LOG.log(Level.WARNING, "Failed to get ControllerType or FCLBridge, task canceled.");
             return;
         }
 
-        controller = controllerType == ControllerType.GAME ? new GameController() : new JavaGuiController();
-        controller.setup(this);
+        menuCallback = menuType == MenuType.GAME ? new GameMenu() : new JavaGuiMenu();
+        menuCallback.setup(this, fclBridge);
         textureView = findViewById(R.id.texture_view);
         textureView.setSurfaceTextureListener(this);
-        mouse=findViewById(R.id.mouse);
-        input=findViewById(R.id.input);
-        textureView.setFocusable(true);
-        mioMouseKeyboard=new MioMouseKeyboard(this,mouse,textureView);
-        mioMouseKeyboard.setFCLBridge(fclBridge);
     }
 
     @Override
     public void onSurfaceTextureAvailable(@NonNull SurfaceTexture surfaceTexture, int i, int i1) {
         Logging.LOG.log(Level.INFO, "surface ready, start jvm now!");
-        fclBridge.execute(new Surface(surfaceTexture), controller.getCallbackBridge());
+        surfaceTexture.setDefaultBufferSize((int) (i * fclBridge.getScaleFactor()), (int) (i1 * fclBridge.getScaleFactor()));
+        fclBridge.execute(new Surface(surfaceTexture), menuCallback.getCallbackBridge());
     }
 
     @Override
     public void onSurfaceTextureSizeChanged(@NonNull SurfaceTexture surfaceTexture, int i, int i1) {
-
+        surfaceTexture.setDefaultBufferSize((int) (i * fclBridge.getScaleFactor()), (int) (i1 * fclBridge.getScaleFactor()));
     }
 
     @Override
@@ -80,24 +66,43 @@ public class JVMActivity extends FCLActivity implements TextureView.SurfaceTextu
         return false;
     }
 
+    private int output = 0;
+
     @Override
     public void onSurfaceTextureUpdated(@NonNull SurfaceTexture surfaceTexture) {
+        if (output == 1) {
+            menuCallback.onGraphicOutput();
+            output++;
+        }
+        if (output < 1) {
+            output++;
+        }
+    }
 
+    @Override
+    protected void onPause() {
+        super.onPause();
+        menuCallback.onPause();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        menuCallback.onResume();
+    }
+
+    @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+        return menuCallback.onKeyDown(keyCode, event);
+    }
+
+    @Override
+    public boolean onKeyUp(int keyCode, KeyEvent event) {
+        return menuCallback.onKeyUp(keyCode, event);
     }
 
     @Override
     public void onBackPressed() {
-        if(getResources().getConfiguration().keyboard!= Configuration.KEYBOARD_NOKEYS) {
-            mioMouseKeyboard.catchPointer();
-            MioMouseKeyboard.baseX=0;
-            MioMouseKeyboard.baseY=0;
-//            if (FCLBridge.cursorMode==FCLBridge.CursorEnabled) {
-//                mouse.setVisibility(View.INVISIBLE);
-//                mioMouseKeyboard.releasePointer();
-//            } else {
-//                mouse.setVisibility(View.VISIBLE);
-//                mioMouseKeyboard.catchPointer();
-//            }
-        }
+        menuCallback.onBackPressed();
     }
 }
