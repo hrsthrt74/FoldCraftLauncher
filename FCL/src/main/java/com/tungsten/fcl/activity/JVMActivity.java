@@ -1,10 +1,12 @@
 package com.tungsten.fcl.activity;
 
+import android.content.res.Configuration;
 import android.graphics.SurfaceTexture;
 import android.os.Bundle;
 import android.view.KeyEvent;
 import android.view.Surface;
 import android.view.TextureView;
+import android.view.ViewGroup;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -24,7 +26,7 @@ public class JVMActivity extends FCLActivity implements TextureView.SurfaceTextu
 
     private TextureView textureView;
 
-    private MenuCallback menuCallback;
+    private MenuCallback menu;
     private static MenuType menuType;
     private static FCLBridge fclBridge;
 
@@ -43,22 +45,26 @@ public class JVMActivity extends FCLActivity implements TextureView.SurfaceTextu
             return;
         }
 
-        menuCallback = menuType == MenuType.GAME ? new GameMenu() : new JavaGuiMenu();
-        menuCallback.setup(this, fclBridge);
+        menu = menuType == MenuType.GAME ? new GameMenu() : new JavaGuiMenu();
+        menu.setup(this, fclBridge);
         textureView = findViewById(R.id.texture_view);
         textureView.setSurfaceTextureListener(this);
+
+        addContentView(menu.getLayout(), new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
     }
 
     @Override
     public void onSurfaceTextureAvailable(@NonNull SurfaceTexture surfaceTexture, int i, int i1) {
         Logging.LOG.log(Level.INFO, "surface ready, start jvm now!");
         surfaceTexture.setDefaultBufferSize((int) (i * fclBridge.getScaleFactor()), (int) (i1 * fclBridge.getScaleFactor()));
-        fclBridge.execute(new Surface(surfaceTexture), menuCallback.getCallbackBridge());
+        fclBridge.execute(new Surface(surfaceTexture), menu.getCallbackBridge());
+        fclBridge.pushEventWindow((int) (i * fclBridge.getScaleFactor()), (int) (i1 * fclBridge.getScaleFactor()));
     }
 
     @Override
     public void onSurfaceTextureSizeChanged(@NonNull SurfaceTexture surfaceTexture, int i, int i1) {
         surfaceTexture.setDefaultBufferSize((int) (i * fclBridge.getScaleFactor()), (int) (i1 * fclBridge.getScaleFactor()));
+        fclBridge.pushEventWindow((int) (i * fclBridge.getScaleFactor()), (int) (i1 * fclBridge.getScaleFactor()));
     }
 
     @Override
@@ -70,8 +76,11 @@ public class JVMActivity extends FCLActivity implements TextureView.SurfaceTextu
 
     @Override
     public void onSurfaceTextureUpdated(@NonNull SurfaceTexture surfaceTexture) {
+        if (textureView != null && textureView.getSurfaceTexture() != null) {
+            textureView.post(() -> onSurfaceTextureSizeChanged(textureView.getSurfaceTexture(), textureView.getWidth(), textureView.getHeight()));
+        }
         if (output == 1) {
-            menuCallback.onGraphicOutput();
+            menu.onGraphicOutput();
             output++;
         }
         if (output < 1) {
@@ -81,28 +90,34 @@ public class JVMActivity extends FCLActivity implements TextureView.SurfaceTextu
 
     @Override
     protected void onPause() {
+        menu.onPause();
         super.onPause();
-        menuCallback.onPause();
     }
 
     @Override
     protected void onResume() {
+        menu.onResume();
         super.onResume();
-        menuCallback.onResume();
-    }
-
-    @Override
-    public boolean onKeyDown(int keyCode, KeyEvent event) {
-        return menuCallback.onKeyDown(keyCode, event);
-    }
-
-    @Override
-    public boolean onKeyUp(int keyCode, KeyEvent event) {
-        return menuCallback.onKeyUp(keyCode, event);
     }
 
     @Override
     public void onBackPressed() {
-        menuCallback.onBackPressed();
+        menu.onBackPressed();
+    }
+
+    @Override
+    protected void onPostResume() {
+        super.onPostResume();
+        if (textureView != null && textureView.getSurfaceTexture() != null) {
+            textureView.post(() -> onSurfaceTextureSizeChanged(textureView.getSurfaceTexture(), textureView.getWidth(), textureView.getHeight()));
+        }
+    }
+
+    @Override
+    public void onConfigurationChanged(@NonNull Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+        if (textureView != null && textureView.getSurfaceTexture() != null) {
+            textureView.post(() -> onSurfaceTextureSizeChanged(textureView.getSurfaceTexture(), textureView.getWidth(), textureView.getHeight()));
+        }
     }
 }

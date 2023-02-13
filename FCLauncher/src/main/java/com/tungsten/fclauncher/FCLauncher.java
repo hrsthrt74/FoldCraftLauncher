@@ -21,7 +21,6 @@ import java.util.Map;
 
 public class FCLauncher {
 
-    // Todo : don't crash when launch 1.17+ with OpenGL 2.1
     // Todo : mouse scroll event
     // Todo : mesa
 
@@ -134,9 +133,7 @@ public class FCLauncher {
         envMap.put("LIBGL_NAME", renderer.getGlLibName());
         envMap.put("LIBEGL_NAME", renderer.getEglLibName());
         if (renderer == FCLConfig.Renderer.RENDERER_GL4ES) {
-            if (renderer.getGlVersion() != null) {
-                envMap.put("LIBGL_GL", renderer.getGlVersion());
-            }
+            envMap.put("LIBGL_ES", "2");
             envMap.put("LIBGL_MIPMAP", "3");
             envMap.put("LIBGL_NORMALIZE", "1");
             envMap.put("LIBGL_VSYNC", "1");
@@ -223,7 +220,7 @@ public class FCLauncher {
         }
     }
 
-    private static int launch(FCLConfig config, FCLBridge bridge, String task) throws IOException {
+    private static void launch(FCLConfig config, FCLBridge bridge, String task) throws IOException {
         printTaskTitle(bridge, task + " Arguments");
         String[] args = rebaseArgs(config);
         for (String arg : args) {
@@ -233,8 +230,7 @@ public class FCLauncher {
         bridge.setLdLibraryPath(getLibraryPath(config.getContext(), config.getJavaPath()));
         bridge.getCallback().onLog("Hook exit " + (bridge.setupExitTrap(bridge) == 0 ? "success" : "failed"));
         int exitCode = bridge.jliLaunch(args);
-        bridge.getCallback().onLog("OpenJDK exited with code : " + exitCode);
-        return exitCode;
+        bridge.onExit(exitCode);
     }
 
     public static FCLBridge launchMinecraft(FCLConfig config) {
@@ -260,8 +256,7 @@ public class FCLauncher {
                 bridge.chdir(config.getWorkingDir());
 
                 // launch game
-                int code = launch(config, bridge, "Minecraft");
-                bridge.onExit(code);
+                launch(config, bridge, "Minecraft");
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -297,8 +292,7 @@ public class FCLauncher {
                 bridge.chdir(config.getWorkingDir());
 
                 // launch java gui
-                int code = launch(config, bridge, "Java GUI");
-                bridge.onExit(code);
+                launch(config, bridge, "Java GUI");
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -330,8 +324,7 @@ public class FCLauncher {
                 bridge.chdir(config.getWorkingDir());
 
                 // launch api installer
-                int code = launch(config, bridge, "API Installer");
-                bridge.onExit(code);
+                launch(config, bridge, "API Installer");
             } catch (IOException e) {
                 e.printStackTrace();
             }

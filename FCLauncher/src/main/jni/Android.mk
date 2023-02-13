@@ -84,6 +84,7 @@ LOCAL_SRC_FILES         := lwjgl2/common/common_tools.c \
                            lwjgl2/common/opengl/org_lwjgl_opengl_NVPresentVideoUtil.c \
                            lwjgl2/common/opengl/org_lwjgl_opengl_NVVideoCaptureUtil.c \
                            lwjgl2/common/org_lwjgl_BufferUtils.c \
+                           lwjgl2/common/org_lwjgl_LWJGLUtil.c \
                            lwjgl2/common/org_lwjgl_openal_AL.c \
                            lwjgl2/common/org_lwjgl_openal_ALC10.c \
                            lwjgl2/common/org_lwjgl_openal_ALC11.c \
@@ -99,6 +100,7 @@ LOCAL_SRC_FILES         := lwjgl2/common/common_tools.c \
                            lwjgl2/fcl/opengl/org_lwjgl_opengl_Display.c \
                            lwjgl2/fcl/opengl/org_lwjgl_opengl_FCLContextImplementation.c \
                            lwjgl2/fcl/opengl/org_lwjgl_opengl_Pbuffer.c \
+                           lwjgl2/fcl/opengl/org_lwjgl_opengl_FCLInjector.c \
                            lwjgl2/fcl/org_lwjgl_input_Cursor.c \
                            lwjgl2/fcl/org_lwjgl_opengl_Display.c \
                            lwjgl2/fcl/org_lwjgl_opengl_FCLEvent.c \

@@ -5,6 +5,7 @@ import static com.tungsten.fclcore.util.Pair.pair;
 
 import android.content.Context;
 
+import com.google.gson.GsonBuilder;
 import com.tungsten.fclauncher.FCLConfig;
 import com.tungsten.fclauncher.FCLauncher;
 import com.tungsten.fclauncher.bridge.FCLBridge;
@@ -17,6 +18,7 @@ import com.tungsten.fclcore.game.GameRepository;
 import com.tungsten.fclcore.game.JavaVersion;
 import com.tungsten.fclcore.game.LaunchOptions;
 import com.tungsten.fclcore.game.Version;
+import com.tungsten.fclcore.util.Logging;
 import com.tungsten.fclcore.util.StringUtils;
 import com.tungsten.fclcore.util.gson.UUIDTypeAdapter;
 import com.tungsten.fclcore.util.io.FileUtils;
@@ -25,9 +27,11 @@ import com.tungsten.fclcore.util.platform.CommandBuilder;
 import com.tungsten.fclcore.util.versioning.VersionNumber;
 
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.function.Supplier;
+import java.util.logging.Level;
 
 public class DefaultLauncher extends Launcher {
 
@@ -102,9 +106,9 @@ public class DefaultLauncher extends Launcher {
         res.addDefault("-Dfml.ignorePatchDiscrepancies=", "true");
 
         // Enable LWJGL debug mode
-        res.addDefault("-Dorg.lwjgl.util.Debug=","true");
-        res.addDefault("-Dorg.lwjgl.util.DebugLoader=","true");
-        res.addDefault("-Dorg.lwjgl.util.DebugFunctions=","true");
+        res.addDefault("-Dorg.lwjgl.util.Debug=", "true");
+        res.addDefault("-Dorg.lwjgl.util.DebugLoader=", "true");
+        res.addDefault("-Dorg.lwjgl.util.DebugFunctions=", "true");
 
         // Fix RCE vulnerability of log4j2
         res.addDefault("-Djava.rmi.server.useCodebaseOnly=", "true");
@@ -121,6 +125,20 @@ public class DefaultLauncher extends Launcher {
         res.addDefault("-Dlwjgl.platform=", "FCL");
         res.addDefault("-Dorg.lwjgl.opengl.libname=", "${gl_lib_name}");
         res.addDefault("-Dfml.earlyprogresswindow=", "false");
+        res.addDefault("-Dlwjgl2.width=", options.getWidth() + "");
+        res.addDefault("-Dlwjgl2.height=", options.getHeight() + "");
+        res.addDefault("-Duser.home=", options.getGameDir().getAbsolutePath());
+        res.addDefault("-Duser.language=", System.getProperty("user.language"));
+        res.addDefault("-Duser.timezone=", TimeZone.getDefault().getID());
+
+        if (getInjectorArg() != null && options.isBeGesture()) {
+            res.addDefault("-Dfcl.injector=", getInjectorArg());
+        }
+
+        // Fix 1.7.2 Forge
+        if (repository.getGameVersion(version).isPresent() && repository.getGameVersion(version).get().equals("1.7.2")) {
+            res.addDefault("-Dsort.patch=", "true");
+        }
 
         List<String> classpath = repository.getClasspath(version);
 
@@ -225,6 +243,40 @@ public class DefaultLauncher extends Launcher {
         res.add(cacioClasspath.toString());
     }
 
+    public String getInjectorArg() {
+        try {
+            String map = IOUtils.readFullyAsString(DefaultLauncher.class.getResourceAsStream("/assets/map.json"), StandardCharsets.UTF_8);
+            InjectorMap injectorMap = new GsonBuilder()
+                    .setPrettyPrinting()
+                    .create()
+                    .fromJson(map, InjectorMap.class);
+            Optional<InjectorMap.MapInfo> mapInfo = injectorMap.getMaps().stream()
+                    .filter(it -> {
+                        String versionTypeId = version.getAssetIndex().getId();
+                        if (versionTypeId.equals("legacy") || versionTypeId.equals("pre-1.6")) {
+                            versionTypeId = repository.getGameVersion(version).orElse("");
+                        }
+                        if (versionTypeId.equals("1.8")
+                                && repository.getGameVersion(version).isPresent()
+                                && (repository.getGameVersion(version).get().equals("1.8.8")
+                                || repository.getGameVersion(version).get().equals("1.8.9"))) {
+                            versionTypeId = "1.8.8";
+                        }
+                        if (versionTypeId.equals("1.9")
+                                && repository.getGameVersion(version).isPresent()
+                                && repository.getGameVersion(version).get().equals("1.9.4")) {
+                            versionTypeId = "1.9.4";
+                        }
+                        return it.getId().equals(versionTypeId);
+                    })
+                    .findFirst();
+            return mapInfo.map(it -> it.getArgument().getArgument(version)).orElse(null);
+        } catch (IOException e) {
+            Logging.LOG.log(Level.WARNING, "Failed to get game map", e);
+            return null;
+        }
+    }
+
     public Map<String, Boolean> getFeatures() {
         return Collections.singletonMap(
                 "has_custom_resolution",
@@ -325,9 +377,6 @@ public class DefaultLauncher extends Launcher {
         String[] finalArgs = rawCommandLine.toArray(new String[0]);
 
         FCLConfig.Renderer renderer = options.getRenderer();
-        if (version.getMinimumLauncherVersion() >= 21) {
-            renderer.setGlVersion("32");
-        }
         FCLConfig config = new FCLConfig(context,
                 FCLPath.LOG_DIR,
                 options.getJava().getVersion() == 8 ? FCLPath.JAVA_8_PATH : FCLPath.JAVA_17_PATH,
