@@ -1,6 +1,7 @@
 package com.tungsten.fcl.activity;
 
 import android.content.res.Configuration;
+import android.graphics.Rect;
 import android.graphics.SurfaceTexture;
 import android.os.Bundle;
 import android.view.KeyEvent;
@@ -16,10 +17,12 @@ import com.tungsten.fcl.control.MenuCallback;
 import com.tungsten.fcl.control.MenuType;
 import com.tungsten.fcl.control.GameMenu;
 import com.tungsten.fcl.control.JavaGuiMenu;
+import com.tungsten.fcl.setting.GameOption;
 import com.tungsten.fclauncher.bridge.FCLBridge;
 import com.tungsten.fclcore.util.Logging;
 import com.tungsten.fcllibrary.component.FCLActivity;
 
+import java.util.Objects;
 import java.util.logging.Level;
 
 public class JVMActivity extends FCLActivity implements TextureView.SurfaceTextureListener {
@@ -29,6 +32,7 @@ public class JVMActivity extends FCLActivity implements TextureView.SurfaceTextu
     private MenuCallback menu;
     private static MenuType menuType;
     private static FCLBridge fclBridge;
+    private boolean isTranslated = false;
 
     public static void setFClBridge(FCLBridge fclBridge, MenuType menuType) {
         JVMActivity.fclBridge = fclBridge;
@@ -51,11 +55,29 @@ public class JVMActivity extends FCLActivity implements TextureView.SurfaceTextu
         textureView.setSurfaceTextureListener(this);
 
         addContentView(menu.getLayout(), new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+
+        getWindow().getDecorView().getViewTreeObserver().addOnGlobalLayoutListener(() -> {
+            int screenHeight = getWindow().getDecorView().getHeight();
+            Rect rect = new Rect();
+            getWindow().getDecorView().getWindowVisibleDisplayFrame(rect);
+            if (screenHeight * 2 / 3 > rect.bottom) {
+                textureView.setTranslationY(rect.bottom - screenHeight);
+                isTranslated = true;
+            } else if (isTranslated) {
+                isTranslated = false;
+                textureView.setTranslationY(0);
+            }
+        });
     }
 
     @Override
     public void onSurfaceTextureAvailable(@NonNull SurfaceTexture surfaceTexture, int i, int i1) {
         Logging.LOG.log(Level.INFO, "surface ready, start jvm now!");
+        GameOption gameOption = new GameOption(Objects.requireNonNull(menu.getBridge()).getGameDir());
+        gameOption.set("fullscreen", "false");
+        gameOption.set("overrideWidth", "" + i);
+        gameOption.set("overrideHeight", "" + i1);
+        gameOption.save();
         surfaceTexture.setDefaultBufferSize((int) (i * fclBridge.getScaleFactor()), (int) (i1 * fclBridge.getScaleFactor()));
         fclBridge.execute(new Surface(surfaceTexture), menu.getCallbackBridge());
         fclBridge.pushEventWindow((int) (i * fclBridge.getScaleFactor()), (int) (i1 * fclBridge.getScaleFactor()));

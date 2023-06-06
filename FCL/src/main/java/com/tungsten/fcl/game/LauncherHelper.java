@@ -6,6 +6,7 @@ import static com.tungsten.fclcore.util.Logging.LOG;
 
 import android.content.Context;
 import android.content.Intent;
+import android.os.Bundle;
 import android.view.View;
 
 import androidx.annotation.NonNull;
@@ -133,7 +134,11 @@ public final class LauncherHelper {
                     Intent intent = new Intent(context, JVMActivity.class);
                     fclBridge.setScaleFactor(repository.getVersionSetting(selectedVersion).getScaleFactor());
                     fclBridge.setController(repository.getVersionSetting(selectedVersion).getController());
+                    fclBridge.setGameDir(repository.getRunDirectory(selectedVersion).getAbsolutePath());
                     JVMActivity.setFClBridge(fclBridge, MenuType.GAME);
+                    Bundle bundle = new Bundle();
+                    bundle.putString("controller", repository.getVersionSetting(selectedVersion).getController());
+                    intent.putExtras(bundle);
                     LOG.log(Level.INFO, "Start JVMActivity!");
                     context.startActivity(intent);
                 })).withStage("launch.state.waiting_launching"))

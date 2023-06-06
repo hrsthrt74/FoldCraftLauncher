@@ -1,6 +1,7 @@
 package com.tungsten.fcl.control.view;
 
 import com.tungsten.fcl.control.GameMenu;
+import com.tungsten.fcl.control.data.ControlViewGroup;
 
 public class ViewManager {
 
@@ -14,7 +15,11 @@ public class ViewManager {
         // Initialize menu view
         MenuView menuView = new MenuView(gameMenu.getActivity());
         menuView.setup(gameMenu);
-        gameMenu.getTouchPad().addView(menuView);
+        gameMenu.getBaseLayout().addView(menuView);
+    }
+
+    public void switchViewGroupVisibility(ControlViewGroup viewGroup) {
+
     }
 
 }
